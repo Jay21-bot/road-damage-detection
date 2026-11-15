@@ -37,6 +37,7 @@ class Settings(BaseSettings):
         "https://*.hf.space",
         "https://*.onrender.com",
         "https://*.railway.app",
+        "https://*.trycloudflare.com",
         "https://huggingface.co"
     ]
 

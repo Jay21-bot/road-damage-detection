@@ -63,7 +63,7 @@ _rate_limit_lock = threading.Lock()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins() if settings.APP_ENV == "production" else ["*"],
-    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)*(hf\.space|huggingface\.co|onrender\.com|railway\.app)$" if settings.APP_ENV == "production" else None,
+    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)*(hf\.space|huggingface\.co|onrender\.com|railway\.app|trycloudflare\.com)$" if settings.APP_ENV == "production" else None,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
