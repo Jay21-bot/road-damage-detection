@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+road_detection.db
+backend/storage/*.db*
+!backend/storage/.gitkeep
+
+# Storage & Large Files
+backend/storage/snapshots/*
+!backend/storage/snapshots/.gitkeep
+backend/models/*.onnx
+backend/models/*.engine
+!backend/models/.gitkeep
+!backend/models/road_damage_best.pt
+!backend/models/yolov8n.pt
+
+# Binaries
+*.exe
+
+# IDEs & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs & Temporary files
+logs/
+*.log
+runs/
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,33 @@
+# ==============================================================================
+# AI-Based Road Damage Detection & Object Recognition System
+# Backend Core Dependencies
+# ==============================================================================
+
+# Web & Asynchronous API Framework
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.28.0,<1.0.0
+pydantic>=2.6.0,<3.0.0
+pydantic-settings>=2.2.0,<3.0.0
+websockets>=12.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.1
+httpx>=0.27.0
+requests>=2.31.0
+
+# Computer Vision & Real-Time Processing
+opencv-python-headless>=4.9.0.80
+pillow>=10.2.0
+numpy>=1.26.0,<2.1.0
+
+# Deep Learning & Object Detection Engine
+ultralytics>=8.1.0
+torch>=2.2.0
+torchvision>=0.17.0
+
+# Database & Object Relational Mapping (ORM)
+sqlalchemy[asyncio]>=2.0.28
+aiosqlite>=0.20.0
+greenlet>=3.0.0
+
+# Utilities & System Monitoring
+psutil>=5.9.8

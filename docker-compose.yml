@@ -1,0 +1,47 @@
+services:
+  road-ai-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: road_ai_surveillance
+    restart: unless-stopped
+    ports:
+      - "${PORT:-7860}:${PORT:-7860}"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=${PORT:-7860}
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - CAMERA_IP=${CAMERA_IP:-192.168.1.100}
+      - CAMERA_RTSP_PORT=${CAMERA_RTSP_PORT:-5543}
+      - CAMERA_RTSP_PATH=${CAMERA_RTSP_PATH:-/live/channel1}
+      - CAMERA_USERNAME=${CAMERA_USERNAME:-admin}
+      - CAMERA_PASSWORD=${CAMERA_PASSWORD}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - DATABASE_URL=sqlite+aiosqlite:///storage/road_detection.db
+      - SAVE_DETECTION_SNAPSHOTS=true
+    volumes:
+      # Persistent SQLite DB and snapshot image storage
+      - ./backend/storage:/app/storage
+      # AI weights directory (YOLO models)
+      - ./backend/models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-7860}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Optional production reverse proxy
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: road_ai_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deployment/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend/storage/snapshots:/storage/snapshots:ro
+    depends_on:
+      - road-ai-backend

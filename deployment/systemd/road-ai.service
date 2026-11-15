@@ -1,0 +1,16 @@
+[Unit]
+Description=AI-Based Road Damage Detection and Surveillance Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/road-ai/backend
+EnvironmentFile=/opt/road-ai/.env
+ExecStart=/opt/road-ai/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

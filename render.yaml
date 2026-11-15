@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ai-road-damage-detection
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEVICE
+        value: cpu
+      - key: API_SECRET_KEY
+        generateValue: true

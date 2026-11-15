@@ -1,0 +1,21 @@
+# ==============================================================================
+# Cloudflare Tunnel Configuration (cloudflared)
+# Connects Edge Camera System to Cloudflare Edge with Zero Exposed Inbound Ports
+# ==============================================================================
+
+# Replace with your actual Cloudflare Tunnel UUID
+tunnel: 00000000-0000-0000-0000-000000000000
+credentials-file: /etc/cloudflared/00000000-0000-0000-0000-000000000000.json
+
+# Ingress Rules Routing Table
+ingress:
+  # Public Hostname for AI Road Surveillance Dashboard & API
+  - hostname: road-ai.yourdomain.com
+    service: http://localhost:8000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: false
+      tcpKeepAlive: 30s
+
+  # Catch-all rule (required by Cloudflare Tunnel)
+  - service: http_status:404

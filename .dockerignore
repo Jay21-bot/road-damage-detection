@@ -1,0 +1,32 @@
+# Virtual Environments & Caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+.pytest_cache/
+
+# Git & OS metadata
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Frontend node modules and builds (handled in separate frontend container if needed)
+frontend/node_modules/
+frontend/dist/
+
+# Large training dataset caches (stored on host volume)
+data/
+runs/
+*.mp4
+*.avi
+
+# Secrets and local overrides
+.env
+.env.*
+.env.local
+*.key
+*.pem
+secrets/

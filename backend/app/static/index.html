@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Road Damage & Object Detection System - CP PLUS CP-E25A</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .hud-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col hud-grid antialiased">
+
+  <!-- Header / Navigation -->
+  <header class="border-b border-gray-800 bg-gray-900/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-2 min-h-16 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i data-lucide="radio" class="w-6 h-6 text-white animate-pulse"></i>
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-wider font-mono text-white">ROAD•AI SURVEILLANCE</h1>
+          <p class="text-[11px] text-gray-400">CP PLUS CP-E25A EDGE ENGINE</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Mobile-Scrollable) -->
+      <nav class="flex space-x-1 font-mono text-xs overflow-x-auto pb-1 max-w-full" id="nav-tabs">
+        <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap bg-cyan-500/10 text-cyan-400 border border-cyan-500/30" data-tab="dashboard">Dashboard</button>
+        <button onclick="switchTab('live')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="live">Live Camera</button>
+        <button onclick="switchTab('damage')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="damage">Road Damage</button>
+        <button onclick="switchTab('objects')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="objects">Objects</button>
+        <button onclick="switchTab('history')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="history">History</button>
+        <button onclick="switchTab('analytics')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="analytics">Analytics</button>
+        <button onclick="switchTab('settings')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="settings">Settings</button>
+      </nav>
+
+      <!-- Telemetry & Mode Pills -->
+      <div class="flex items-center space-x-2 font-mono text-xs flex-wrap gap-y-1">
+        <div id="demo-mode-badge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
+          <span id="demo-mode-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="demo-mode-text" class="text-[11px] font-bold text-amber-300">DEMO MODE</span>
+        </div>
+        <div class="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-gray-800 border border-gray-700">
+          <span id="cam-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span id="cam-state-badge" class="text-[11px] text-gray-300">STREAMING</span>
+        </div>
+        <div class="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-gray-800 border border-gray-700">
+          <span id="ws-dot" class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <span id="ws-state-badge" class="text-[11px] text-cyan-300">WS LIVE</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono">
+        <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+          <span class="text-xs text-gray-400">TOTAL DETECTIONS</span>
+          <p id="stat-total" class="text-2xl font-bold text-white mt-1">0</p>
+          <span class="text-[11px] text-cyan-400">Active Real-Time Stream</span>
+        </div>
+        <div class="p-4 rounded-xl bg-gray-900 border border-rose-950/60">
+          <span class="text-xs text-rose-400">ROAD DAMAGE ALERTS</span>
+          <p id="stat-damages" class="text-2xl font-bold text-rose-400 mt-1">0</p>
+          <span class="text-[11px] text-gray-400">Potholes & Cracks</span>
+        </div>
+        <div class="p-4 rounded-xl bg-gray-900 border border-cyan-950/60">
+          <span class="text-xs text-cyan-400">TRAFFIC OBJECTS</span>
+          <p id="stat-objects" class="text-2xl font-bold text-cyan-400 mt-1">0</p>
+          <span class="text-[11px] text-gray-400">Vehicles & Pedestrians</span>
+        </div>
+        <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+          <span class="text-xs text-emerald-400">INFERENCE LATENCY</span>
+          <p id="stat-latency" class="text-2xl font-bold text-emerald-400 mt-1">0.0 ms</p>
+          <span id="stat-fps" class="text-[11px] text-gray-400">0.0 FPS</span>
+        </div>
+      </div>
+
+      <!-- Main Stream and Incident Feed -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-3">
+          <div class="flex items-center justify-between font-mono text-xs">
+            <span class="text-gray-300 font-bold flex items-center space-x-1">
+              <i data-lucide="video" class="w-4 h-4 text-emerald-400"></i>
+              <span>LIVE CP PLUS CP-E25A SURVEILLANCE FEED</span>
+            </span>
+            <span class="text-emerald-400 font-bold">25+ FPS REAL-TIME</span>
+          </div>
+
+          <!-- Quick Clean AI Detection Mode & Filter Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gray-900 border border-gray-800 rounded-xl font-mono text-xs shadow-md">
+            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+              <span class="text-gray-400 font-bold text-[11px] mr-1">MODE:</span>
+              <button onclick="setMode('all')" id="mode-all" class="mode-btn px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold text-[11px]">ALL</button>
+              <button onclick="setMode('traffic')" id="mode-traffic" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">TRAFFIC / CARS</button>
+              <button onclick="setMode('damage')" id="mode-damage" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">ROAD DAMAGE</button>
+              <button onclick="setMode('pedestrian')" id="mode-pedestrian" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">PEDESTRIAN</button>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-gray-400 text-[11px]">SENSITIVITY:</span>
+              <input type="range" id="conf-slider" min="30" max="90" value="65" oninput="updateConfidence(this.value)" class="w-20 accent-cyan-400 cursor-pointer h-1.5 bg-gray-700 rounded-lg" />
+              <span id="conf-val" class="text-cyan-400 font-bold text-[11px] w-8">65%</span>
+            </div>
+          </div>
+
+          <div class="relative rounded-xl overflow-hidden border border-gray-800 bg-black aspect-video flex items-center justify-center group" id="player-container">
+            <!-- Live MJPEG Stream -->
+            <img id="stream-img" src="/api/v1/camera/stream" class="w-full h-full object-contain" alt="Surveillance Stream" onload="handleStreamLoaded()" onerror="handleStreamError()" />
+            <canvas id="detection-canvas" width="1280" height="720" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
+
+            <!-- Loading Spinner State -->
+            <div id="player-loading" class="absolute inset-0 bg-gray-950/80 flex flex-col items-center justify-center space-y-2 pointer-events-none transition-opacity duration-300">
+              <div class="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+              <span id="player-loading-text" class="text-xs font-mono text-cyan-400">CONNECTING STREAM / WAKING UP CLOUD AI...</span>
+            </div>
+
+            <!-- Error / Offline State -->
+            <div id="player-error" class="absolute inset-0 bg-gray-950/90 flex flex-col items-center justify-center space-y-3 p-4 text-center hidden">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                <i data-lucide="activity" class="w-5 h-5 text-cyan-400 animate-pulse"></i>
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs font-mono font-bold text-cyan-300">WAKING UP CLOUD NEURAL ENGINE</p>
+                <p id="player-error-msg" class="text-[11px] font-mono text-gray-400 max-w-sm">Cloud container is initializing. Auto-reconnecting in a moment...</p>
+              </div>
+              <button onclick="refreshStream()" class="px-3 py-1.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-mono hover:bg-cyan-500/30">FORCE RECONNECT</button>
+            </div>
+
+            <!-- Video Controls -->
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2.5 rounded-lg bg-gray-900/90 backdrop-blur border border-gray-800 opacity-90 group-hover:opacity-100">
+              <div class="flex items-center space-x-2">
+                <button id="btn-toggle-ai" onclick="toggleDetection()" class="px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold">PAUSE AI</button>
+                <button onclick="refreshStream()" class="px-2.5 py-1.5 rounded bg-gray-800 text-gray-300 border border-gray-700 text-xs font-mono hover:text-white flex items-center space-x-1">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                  <span>REFRESH</span>
+                </button>
+              </div>
+              <button onclick="toggleFullscreen()" class="p-1.5 rounded bg-gray-800 text-gray-300 border border-gray-700">
+                <i data-lucide="maximize-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident Feed -->
+        <div class="space-y-3">
+          <h2 class="text-xs font-bold font-mono text-gray-300 uppercase tracking-wider flex items-center space-x-1">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+            <span>LIVE INCIDENT STREAM</span>
+          </h2>
+          <div id="incident-feed" class="rounded-xl border border-gray-800 bg-gray-900/60 p-3 h-[420px] overflow-y-auto space-y-2 font-mono text-xs">
+            <div class="text-center text-gray-500 py-16">Awaiting detection events...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: LIVE CAMERA -->
+    <section id="view-live" class="space-y-6 hidden">
+      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+        <h2 class="text-sm font-bold font-mono text-white mb-2">DEDICATED FULL-FRAME CAMERA MONITOR</h2>
+        <p class="text-xs text-gray-400 font-mono mb-4">Continuous video streaming with sub-frame synchronized neural network predictions.</p>
+        <div class="aspect-video bg-black rounded-lg overflow-hidden border border-gray-800 relative">
+          <img src="/api/v1/camera/stream" class="w-full h-full object-contain" />
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ROAD DAMAGE -->
+    <section id="view-damage" class="space-y-6 hidden">
+      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+        <h2 class="text-sm font-bold font-mono text-rose-400 mb-2">ROAD DAMAGE CLASSIFICATION LOGS</h2>
+        <p class="text-xs text-gray-400 font-mono mb-4">Potholes (D40), Longitudinal Cracks (D00), Transverse Cracks (D10), Alligator Cracks (D20)</p>
+        <div id="damage-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: OBJECTS -->
+    <section id="view-objects" class="space-y-6 hidden">
+      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+        <h2 class="text-sm font-bold font-mono text-cyan-400 mb-2">TRAFFIC & OBJECT RECOGNITION</h2>
+        <p class="text-xs text-gray-400 font-mono mb-4">Vehicles, Pedestrians, Bicycles, and Urban Infrastructure detected in camera viewport.</p>
+        <div id="object-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: HISTORY -->
+    <section id="view-history" class="space-y-6 hidden">
+      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold font-mono text-white">SEARCHABLE DETECTION AUDIT TRAIL</h2>
+          <button onclick="exportCSV()" class="px-3 py-1.5 rounded bg-gray-800 text-cyan-400 border border-gray-700 text-xs font-mono font-bold">EXPORT CSV</button>
+        </div>
+        <table class="w-full text-left text-xs font-mono">
+          <thead class="bg-gray-950 border-b border-gray-800 text-gray-400">
+            <tr><th class="p-2.5">ID</th><th class="p-2.5">CATEGORY</th><th class="p-2.5">CLASS</th><th class="p-2.5">CONFIDENCE</th><th class="p-2.5">SNAPSHOT</th><th class="p-2.5">TIMESTAMP</th></tr>
+          </thead>
+          <tbody id="history-tbody" class="divide-y divide-gray-800"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 6: ANALYTICS -->
+    <section id="view-analytics" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
+        <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-3">
+          <h3 class="text-rose-400 font-bold">ROAD DAMAGE BREAKDOWN</h3>
+          <div id="damage-analytics-bars" class="space-y-2"></div>
+        </div>
+        <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-3">
+          <h3 class="text-cyan-400 font-bold">TRAFFIC PARTICIPANT BREAKDOWN</h3>
+          <div id="object-analytics-bars" class="space-y-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: SETTINGS -->
+    <section id="view-settings" class="space-y-6 hidden max-w-2xl">
+      <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-4 font-mono text-xs">
+        <div>
+          <h2 class="text-sm font-bold text-white">CP PLUS CP-E25A CONNECTION SETTINGS</h2>
+          <p class="text-[11px] text-gray-400 mt-1">Configure RTSP streams, ONVIF ports, or enter an Admin API Key for authenticated control.</p>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <label class="text-gray-400">ADMIN API KEY (X-API-Key)</label>
+            <input id="cfg-apikey" type="password" placeholder="Required for modifying camera or detection controls" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+          </div>
+          <div>
+            <label class="text-gray-400">CAMERA IP ADDRESS</label>
+            <input id="cfg-ip" type="text" placeholder="192.168.1.100" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-gray-400">RTSP PORT</label>
+              <input id="cfg-port" type="number" placeholder="5543" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            </div>
+            <div>
+              <label class="text-gray-400">RTSP STREAM PATH</label>
+              <input id="cfg-path" type="text" placeholder="/live/channel1" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-gray-400">USERNAME</label>
+              <input id="cfg-user" type="text" placeholder="admin" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            </div>
+            <div>
+              <label class="text-gray-400">PASSWORD</label>
+              <input id="cfg-pwd" type="password" placeholder="••••••••" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            </div>
+          </div>
+          <div class="pt-2 flex items-center space-x-3">
+            <button onclick="saveCameraSettings()" class="px-4 py-2 rounded bg-cyan-500 text-black font-bold hover:bg-cyan-400">UPDATE & RECONNECT CAMERA</button>
+            <span id="cfg-status" class="text-emerald-400 font-bold"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.tab === tabId) {
+          btn.className = "tab-btn px-3 py-2 rounded-md transition-all bg-cyan-500/10 text-cyan-400 border border-cyan-500/30";
+        } else {
+          btn.className = "tab-btn px-3 py-2 rounded-md transition-all text-gray-400 hover:text-white";
+        }
+      });
+
+      if (tabId === 'history') loadHistory();
+      if (tabId === 'analytics') loadAnalytics();
+      if (tabId === 'damage') loadDamages();
+      if (tabId === 'objects') loadObjects();
+    }
+
+    // State & WebSocket
+    let isAiActive = true;
+    let showCanvasOverlay = false;  // Disabled by default to prevent doubled boxes over MJPEG stream
+    let currentMode = 'all';
+    let ws = null;
+    let canvas = document.getElementById('detection-canvas');
+    let ctx = canvas.getContext('2d');
+    let historicalData = [];
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.className = "mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]";
+      });
+      const activeBtn = document.getElementById('mode-' + mode);
+      if (activeBtn) {
+        activeBtn.className = "mode-btn px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold text-[11px]";
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ command: "set_mode", mode: mode }));
+      }
+    }
+
+    function updateConfidence(val) {
+      const conf = val / 100.0;
+      document.getElementById('conf-val').innerText = val + '%';
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ command: "set_thresholds", damage_conf: conf, object_conf: conf }));
+      }
+    }
+
+    function refreshStream() {
+      const img = document.getElementById('stream-img');
+      const loader = document.getElementById('player-loading');
+      const errOverlay = document.getElementById('player-error');
+      if (loader) loader.classList.remove('hidden');
+      if (errOverlay) errOverlay.classList.add('hidden');
+      img.src = '/api/v1/camera/stream?t=' + Date.now();
+    }
+
+    function handleStreamLoaded() {
+      const loader = document.getElementById('player-loading');
+      const errOverlay = document.getElementById('player-error');
+      if (loader) loader.classList.add('hidden');
+      if (errOverlay) errOverlay.classList.add('hidden');
+    }
+
+    function handleStreamError() {
+      const loader = document.getElementById('player-loading');
+      const errOverlay = document.getElementById('player-error');
+      if (loader) loader.classList.add('hidden');
+      if (errOverlay) errOverlay.classList.remove('hidden');
+      // Automatically attempt retry in 3.5s and poll health
+      setTimeout(() => {
+        fetch('/health')
+          .then(r => r.json())
+          .then(() => refreshStream())
+          .catch(() => refreshStream());
+      }, 3500);
+    }
+
+    function connectWs() {
+      const loc = window.location;
+      const wsUri = (loc.protocol === "https:" ? "wss:" : "ws:") + "//" + loc.host + "/ws/detections";
+      ws = new WebSocket(wsUri);
+
+      ws.onopen = () => {
+        document.getElementById('ws-dot').className = "w-2 h-2 rounded-full bg-cyan-400";
+        document.getElementById('ws-state-badge').innerText = "WS LIVE";
+      };
+
+      ws.onmessage = (evt) => {
+        const data = JSON.parse(evt.data);
+        if (data.event === 'DETECTION_UPDATE') {
+          handleTelemetry(data);
+        } else if (data.event === 'CAMERA_STATUS_CHANGED') {
+          handleCameraStatus(data.camera);
+        } else if (data.event === 'DETECTION_STATE_CHANGED') {
+          handleDetectionState(data.detection_active);
+        }
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-dot').className = "w-2 h-2 rounded-full bg-rose-500";
+        document.getElementById('ws-state-badge').innerText = "WS RECONNECTING";
+        setTimeout(connectWs, 3000);
+      };
+    }
+
+    function handleCameraStatus(camera) {
+      if (!camera) return;
+      const dot = document.getElementById('cam-dot');
+      const badge = document.getElementById('cam-state-badge');
+      const demoBadge = document.getElementById('demo-mode-badge');
+      const demoDot = document.getElementById('demo-mode-dot');
+      const demoText = document.getElementById('demo-mode-text');
+
+      const isDemo = !!(camera.demo_mode || camera.is_synthetic);
+      if (demoBadge && demoDot && demoText) {
+        if (isDemo) {
+          demoBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30";
+          demoDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+          demoText.innerText = "DEMO ROAD AI";
+        } else {
+          demoBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30";
+          demoDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+          demoText.innerText = "LIVE CAMERA";
+        }
+      }
+
+      const st = (camera.state || '').toUpperCase();
+      if (st === 'STREAMING' || st === 'CONNECTED') {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+        badge.innerText = isDemo ? "DEMO STREAM" : "LIVE STREAM";
+        handleStreamLoaded();
+      } else if (st === 'RECONNECTING' || st === 'CONNECTING') {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+        badge.innerText = "CONNECTING...";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500";
+        badge.innerText = "OFFLINE";
+      }
+    }
+
+    function handleDetectionState(active) {
+      isAiActive = !!active;
+      const btn = document.getElementById('btn-toggle-ai');
+      if (btn) {
+        if (isAiActive) {
+          btn.innerText = "PAUSE AI";
+          btn.className = "px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold";
+        } else {
+          btn.innerText = "RESUME AI";
+          btn.className = "px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-mono font-bold";
+        }
+      }
+    }
+
+    function handleTelemetry(data) {
+      document.getElementById('stat-fps').innerText = (data.fps || 0).toFixed(1) + " FPS";
+      document.getElementById('stat-latency').innerText = (data.latency_ms || 0).toFixed(1) + " ms";
+
+      if (data.counts) {
+        document.getElementById('stat-damages').innerText = data.counts.damages;
+        document.getElementById('stat-objects').innerText = data.counts.objects;
+        document.getElementById('stat-total').innerText = data.counts.total;
+      }
+
+      if (showCanvasOverlay) {
+        renderCanvasBoxes(data.detections || []);
+      }
+
+      if (data.detections && data.detections.length > 0) {
+        prependIncident(data.detections[0]);
+      }
+    }
+
+    function renderCanvasBoxes(detections) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      detections.forEach(det => {
+        const [cx, cy, nw, nh] = det.normalized_bbox;
+        const x = (cx - nw / 2) * canvas.width;
+        const y = (cy - nh / 2) * canvas.height;
+        const w = nw * canvas.width;
+        const h = nh * canvas.height;
+        const isDmg = det.category === 'road_damage';
+
+        ctx.strokeStyle = isDmg ? '#ff2a55' : '#00e5ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = isDmg ? '#ff2a55' : '#00e5ff';
+        const label = (isDmg ? '[DMG] ' : '[OBJ] ') + det.class_name.toUpperCase() + ' ' + (det.confidence * 100).toFixed(0) + '%';
+        ctx.font = '12px JetBrains Mono';
+        ctx.fillRect(x, Math.max(0, y - 18), ctx.measureText(label).width + 8, 18);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(label, x + 4, Math.max(12, y - 5));
+      });
+    }
+
+    function prependIncident(det) {
+      const feed = document.getElementById('incident-feed');
+      if (feed.children.length > 30) feed.removeChild(feed.lastChild);
+      const isDmg = det.category === 'road_damage';
+      const div = document.createElement('div');
+      div.className = `p-2 rounded border flex justify-between items-center ${isDmg ? 'bg-rose-950/30 border-rose-800/40 text-rose-300' : 'bg-cyan-950/30 border-cyan-800/40 text-cyan-300'}`;
+      div.innerHTML = `<div><span class="font-bold mr-2">[${isDmg ? 'DAMAGE' : 'OBJECT'}]</span><span>${det.class_name.toUpperCase()}</span></div><span class="font-bold">${(det.confidence * 100).toFixed(0)}%</span>`;
+      feed.insertBefore(div, feed.firstChild);
+    }
+
+    async function toggleDetection() {
+      const btn = document.getElementById('btn-toggle-ai');
+      const apiKey = document.getElementById('cfg-apikey')?.value || '';
+      const headers = {};
+      if (apiKey) headers['X-API-Key'] = apiKey;
+
+      const endpoint = isAiActive ? '/api/v1/detection/stop' : '/api/v1/detection/start';
+      try {
+        const res = await fetch(endpoint, { method: 'POST', headers: headers });
+        if (res.status === 401 || res.status === 403) {
+          alert("Public Read-Only Mode: An Admin API Key (X-API-Key) is required to pause or resume AI detection. Enter your key in the Settings tab.");
+          return;
+        }
+        isAiActive = !isAiActive;
+        if (isAiActive) {
+          btn.innerText = "PAUSE AI";
+          btn.className = "px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold";
+        } else {
+          btn.innerText = "RESUME AI";
+          btn.className = "px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-mono font-bold";
+        }
+      } catch (e) {
+        console.error("AI toggle error:", e);
+      }
+    }
+
+    function toggleCanvas() {
+      showCanvasOverlay = !showCanvasOverlay;
+      if (!showCanvasOverlay) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function toggleFullscreen() {
+      const c = document.getElementById('player-container');
+      if (!document.fullscreenElement) c.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    async function loadHistory() {
+      const res = await fetch('/api/v1/detections?page_size=20').then(r => r.json());
+      historicalData = res.detections || [];
+      const tbody = document.getElementById('history-tbody');
+      tbody.innerHTML = historicalData.map(d => `
+        <tr class="hover:bg-gray-800/40">
+          <td class="p-2.5 text-gray-400 font-mono">${d.id.slice(0, 8)}...</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${d.category === 'road_damage' ? 'bg-rose-500/20 text-rose-400' : 'bg-cyan-500/20 text-cyan-400'}">${d.category.toUpperCase()}</span></td>
+          <td class="p-2.5 text-white font-bold">${d.class_name.toUpperCase()}</td>
+          <td class="p-2.5 text-cyan-400 font-bold">${(d.confidence * 100).toFixed(1)}%</td>
+          <td class="p-2.5">
+            ${d.snapshot_path ? `<a href="${d.snapshot_path}" target="_blank" class="inline-flex items-center text-xs text-cyan-400 hover:text-cyan-300"><img src="${d.snapshot_path}" class="w-8 h-8 rounded border border-gray-700 object-cover mr-1.5" />View</a>` : `<span class="text-gray-600">-</span>`}
+          </td>
+          <td class="p-2.5 text-gray-400">${new Date(d.timestamp * 1000).toLocaleTimeString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadDamages() {
+      const res = await fetch('/api/v1/detections?category=road_damage&page_size=12').then(r => r.json());
+      const list = document.getElementById('damage-list');
+      if (!res.detections || res.detections.length === 0) {
+        list.innerHTML = `<div class="col-span-3 text-center py-12 text-gray-500">No road damage incidents recorded yet.</div>`;
+        return;
+      }
+      list.innerHTML = res.detections.map(d => `
+        <div class="p-3 rounded-lg bg-gray-950 border border-rose-900/40 space-y-2">
+          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-32 object-cover rounded border border-gray-800" />` : `<div class="w-full h-32 bg-gray-900 rounded flex items-center justify-center text-gray-600">No Snapshot</div>`}
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-rose-400">${d.class_name.toUpperCase()}</span>
+            <span class="text-xs text-cyan-300 font-bold">${(d.confidence * 100).toFixed(0)}%</span>
+          </div>
+          <div class="text-[10px] text-gray-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    async function loadObjects() {
+      const res = await fetch('/api/v1/detections?category=general_object&page_size=12').then(r => r.json());
+      const list = document.getElementById('object-list');
+      if (!res.detections || res.detections.length === 0) {
+        list.innerHTML = `<div class="col-span-3 text-center py-12 text-gray-500">No traffic objects logged yet.</div>`;
+        return;
+      }
+      list.innerHTML = res.detections.map(d => `
+        <div class="p-3 rounded-lg bg-gray-950 border border-cyan-900/40 space-y-2">
+          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-32 object-cover rounded border border-gray-800" />` : `<div class="w-full h-32 bg-gray-900 rounded flex items-center justify-center text-gray-600">No Snapshot</div>`}
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-cyan-400">${d.class_name.toUpperCase()}</span>
+            <span class="text-xs text-white font-bold">${(d.confidence * 100).toFixed(0)}%</span>
+          </div>
+          <div class="text-[10px] text-gray-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    async function loadAnalytics() {
+      const st = await fetch('/api/v1/statistics').then(r => r.json());
+      const dmgDiv = document.getElementById('damage-analytics-bars');
+      dmgDiv.innerHTML = Object.entries(st.damage_by_class || {}).map(([k, v]) => `
+        <div><div class="flex justify-between mb-1"><span class="uppercase">${k.replace('_', ' ')}</span><span class="text-rose-400 font-bold">${v}</span></div>
+        <div class="h-2 bg-gray-800 rounded-full"><div style="width: ${Math.min(100, v * 10)}%" class="h-full bg-rose-500 rounded-full"></div></div></div>
+      `).join('');
+
+      const objDiv = document.getElementById('object-analytics-bars');
+      objDiv.innerHTML = Object.entries(st.objects_by_class || {}).map(([k, v]) => `
+        <div><div class="flex justify-between mb-1"><span class="uppercase">${k}</span><span class="text-cyan-400 font-bold">${v}</span></div>
+        <div class="h-2 bg-gray-800 rounded-full"><div style="width: ${Math.min(100, v * 10)}%" class="h-full bg-cyan-500 rounded-full"></div></div></div>
+      `).join('');
+    }
+
+    async function saveCameraSettings() {
+      const apiKey = document.getElementById('cfg-apikey')?.value || '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (apiKey) headers['X-API-Key'] = apiKey;
+
+      const statusEl = document.getElementById('cfg-status');
+      statusEl.className = "text-cyan-400 font-bold";
+      statusEl.innerText = "Connecting...";
+
+      const ip = document.getElementById('cfg-ip').value.trim();
+      const portVal = document.getElementById('cfg-port').value.trim();
+      const port = portVal ? parseInt(portVal) : 5543;
+      const user = document.getElementById('cfg-user').value.trim();
+      const pwd = document.getElementById('cfg-pwd').value;
+      const path = document.getElementById('cfg-path')?.value.trim();
+
+      const payload = {};
+      if (ip) payload.ip_address = ip;
+      if (port) payload.rtsp_port = port;
+      if (user) payload.username = user;
+      if (pwd) payload.password = pwd;
+      if (path && ip && port) {
+        payload.rtsp_override_url = `rtsp://${user || 'admin'}:${pwd}@${ip}:${port}${path.startsWith('/') ? path : '/' + path}`;
+      }
+
+      try {
+        const res = await fetch('/api/v1/camera/connect', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 401 || res.status === 403) {
+          statusEl.className = "text-rose-400 font-bold";
+          statusEl.innerText = "Forbidden: Valid Admin API Key (X-API-Key) required to update camera.";
+          return;
+        }
+        const data = await res.json();
+        statusEl.className = data.success ? "text-emerald-400 font-bold" : "text-amber-400 font-bold";
+        statusEl.innerText = data.message;
+        refreshStream();
+      } catch (err) {
+        statusEl.className = "text-rose-400 font-bold";
+        statusEl.innerText = "Connection request failed: " + err.message;
+      }
+    }
+
+    function exportCSV() {
+      if (!historicalData.length) return;
+      let csv = "ID,Category,Class,Confidence,Timestamp\n" + historicalData.map(d => `${d.id},${d.category},${d.class_name},${d.confidence},${d.timestamp}`).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `detections_${Date.now()}.csv`;
+      a.click();
+    }
+
+    window.onload = () => {
+      lucide.createIcons();
+      connectWs();
+    };
+  </script>
+</body>
+</html>
