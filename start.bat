@@ -15,4 +15,5 @@ if not exist venv (
 
 set PORT=7860
 echo Starting AI Surveillance Server on http://localhost:7860 ...
+start "" http://localhost:7860
 .\venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 0.0.0.0 --port 7860

@@ -3,62 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Road Damage & Object Detection System - CP PLUS CP-E25A</title>
-  <!-- Tailwind CSS CDN -->
+  <title>ROAD•AI | CP PLUS Industrial Edge Surveillance System</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛣️</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     .hud-grid {
-      background-size: 32px 32px;
+      background-size: 24px 24px;
       background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
     }
+    .neon-border-cyan { box-shadow: 0 0 15px rgba(6, 182, 212, 0.15); }
+    .neon-border-rose { box-shadow: 0 0 15px rgba(244, 63, 94, 0.15); }
+    .radar-sweep {
+      background: conic-gradient(from 0deg at 50% 50%, rgba(6, 182, 212, 0) 0deg, rgba(6, 182, 212, 0.2) 360deg);
+      animation: spin 3s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col hud-grid antialiased">
+<body class="bg-[#090d16] text-slate-100 min-h-screen flex flex-col hud-grid antialiased selection:bg-cyan-500 selection:text-black">
 
-  <!-- Header / Navigation -->
-  <header class="border-b border-gray-800 bg-gray-900/90 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-2 min-h-16 flex flex-wrap items-center justify-between gap-3">
+  <!-- Tactical Navigation Bar -->
+  <header class="border-b border-cyan-900/40 bg-[#0c121e]/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Camera Model -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-          <i data-lucide="radio" class="w-6 h-6 text-white animate-pulse"></i>
+        <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-emerald-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
+          <i data-lucide="scan" class="w-5 h-5 text-white animate-pulse"></i>
+          <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
         </div>
         <div>
-          <h1 class="text-sm font-bold tracking-wider font-mono text-white">ROAD•AI SURVEILLANCE</h1>
-          <p class="text-[11px] text-gray-400">CP PLUS CP-E25A EDGE ENGINE</p>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-sm font-black tracking-wider font-mono text-white">ROAD•AI SURVEILLANCE</h1>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">v2.4 PRO</span>
+          </div>
+          <p class="text-[11px] font-mono text-slate-400 flex items-center space-x-1">
+            <span>CP PLUS CP-E25A</span>
+            <span class="text-slate-600">•</span>
+            <span id="live-clock" class="text-cyan-400 font-semibold">00:00:00</span>
+          </p>
         </div>
       </div>
 
-      <!-- Navigation Tabs (Mobile-Scrollable) -->
+      <!-- Navigation Tabs -->
       <nav class="flex space-x-1 font-mono text-xs overflow-x-auto pb-1 max-w-full" id="nav-tabs">
-        <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap bg-cyan-500/10 text-cyan-400 border border-cyan-500/30" data-tab="dashboard">Dashboard</button>
-        <button onclick="switchTab('live')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="live">Live Camera</button>
-        <button onclick="switchTab('damage')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="damage">Road Damage</button>
-        <button onclick="switchTab('objects')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="objects">Objects</button>
-        <button onclick="switchTab('history')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="history">History</button>
-        <button onclick="switchTab('analytics')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="analytics">Analytics</button>
-        <button onclick="switchTab('settings')" class="tab-btn px-3 py-2 rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-white" data-tab="settings">Settings</button>
+        <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 font-bold" data-tab="dashboard">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 inline mr-1"></i>Dashboard
+        </button>
+        <button onclick="switchTab('live')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="live">
+          <i data-lucide="video" class="w-3.5 h-3.5 inline mr-1"></i>Live View
+        </button>
+        <button onclick="switchTab('damage')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="damage">
+          <i data-lucide="alert-octagon" class="w-3.5 h-3.5 inline mr-1"></i>Damage Log
+        </button>
+        <button onclick="switchTab('objects')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="objects">
+          <i data-lucide="car" class="w-3.5 h-3.5 inline mr-1"></i>Vehicles
+        </button>
+        <button onclick="switchTab('history')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="history">
+          <i data-lucide="history" class="w-3.5 h-3.5 inline mr-1"></i>History
+        </button>
+        <button onclick="switchTab('analytics')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="analytics">
+          <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 inline mr-1"></i>Analytics
+        </button>
+        <button onclick="switchTab('settings')" class="tab-btn px-3 py-1.5 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white" data-tab="settings">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 inline mr-1"></i>Settings
+        </button>
       </nav>
 
-      <!-- Telemetry & Mode Pills -->
+      <!-- Status Indicators & Badges -->
       <div class="flex items-center space-x-2 font-mono text-xs flex-wrap gap-y-1">
-        <div id="demo-mode-badge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30">
-          <span id="demo-mode-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-          <span id="demo-mode-text" class="text-[11px] font-bold text-amber-300">DEMO MODE</span>
-        </div>
-        <div class="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-gray-800 border border-gray-700">
+        <button onclick="reconnectLiveCamera()" title="Click to reconnect live CP PLUS camera" id="demo-mode-badge" class="cursor-pointer flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all">
+          <span id="demo-mode-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="demo-mode-text" class="text-[11px] font-bold text-emerald-300">LIVE CAMERA</span>
+        </button>
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800">
           <span id="cam-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span id="cam-state-badge" class="text-[11px] text-gray-300">STREAMING</span>
+          <span id="cam-state-badge" class="text-[11px] text-slate-300">STREAMING</span>
         </div>
-        <div class="flex items-center space-x-2 px-2.5 py-1 rounded-full bg-gray-800 border border-gray-700">
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800">
           <span id="ws-dot" class="w-2 h-2 rounded-full bg-cyan-400"></span>
           <span id="ws-state-badge" class="text-[11px] text-cyan-300">WS LIVE</span>
         </div>
@@ -66,210 +97,318 @@
     </div>
   </header>
 
-  <!-- Main View Area -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+  <!-- Main Viewport -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-5">
 
-    <!-- TAB 1: DASHBOARD -->
-    <section id="view-dashboard" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono">
-        <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-          <span class="text-xs text-gray-400">TOTAL DETECTIONS</span>
-          <p id="stat-total" class="text-2xl font-bold text-white mt-1">0</p>
-          <span class="text-[11px] text-cyan-400">Active Real-Time Stream</span>
+    <!-- VIEW 1: DASHBOARD -->
+    <section id="view-dashboard" class="space-y-5">
+      
+      <!-- Key Metric Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 font-mono">
+        
+        <!-- Total Inferences -->
+        <div class="p-4 rounded-xl bg-[#0f172a]/80 border border-slate-800/80 backdrop-blur neon-border-cyan relative overflow-hidden group">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>TOTAL DETECTIONS</span>
+            <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <p id="stat-total" class="text-2xl md:text-3xl font-extrabold text-white mt-2">0</p>
+          <div class="mt-1 flex items-center space-x-1 text-[11px] text-cyan-400">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <span>Concurrent Dual-YOLOv8</span>
+          </div>
         </div>
-        <div class="p-4 rounded-xl bg-gray-900 border border-rose-950/60">
-          <span class="text-xs text-rose-400">ROAD DAMAGE ALERTS</span>
-          <p id="stat-damages" class="text-2xl font-bold text-rose-400 mt-1">0</p>
-          <span class="text-[11px] text-gray-400">Potholes & Cracks</span>
+
+        <!-- Road Damage Incidents -->
+        <div class="p-4 rounded-xl bg-[#0f172a]/80 border border-rose-900/40 backdrop-blur neon-border-rose relative overflow-hidden group">
+          <div class="flex items-center justify-between text-rose-400 text-xs font-bold">
+            <span>ROAD DEFECTS (RDD)</span>
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+          </div>
+          <p id="stat-damages" class="text-2xl md:text-3xl font-extrabold text-rose-400 mt-2">0</p>
+          <div class="mt-1 text-[11px] text-slate-400 truncate">Potholes (D40) & Cracks</div>
         </div>
-        <div class="p-4 rounded-xl bg-gray-900 border border-cyan-950/60">
-          <span class="text-xs text-cyan-400">TRAFFIC OBJECTS</span>
-          <p id="stat-objects" class="text-2xl font-bold text-cyan-400 mt-1">0</p>
-          <span class="text-[11px] text-gray-400">Vehicles & Pedestrians</span>
+
+        <!-- Traffic Objects -->
+        <div class="p-4 rounded-xl bg-[#0f172a]/80 border border-cyan-900/40 backdrop-blur relative overflow-hidden group">
+          <div class="flex items-center justify-between text-cyan-400 text-xs font-bold">
+            <span>TRAFFIC PARTICIPANTS</span>
+            <i data-lucide="truck" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <p id="stat-objects" class="text-2xl md:text-3xl font-extrabold text-cyan-300 mt-2">0</p>
+          <div class="mt-1 text-[11px] text-slate-400 truncate">Vehicles & Pedestrians</div>
         </div>
-        <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-          <span class="text-xs text-emerald-400">INFERENCE LATENCY</span>
-          <p id="stat-latency" class="text-2xl font-bold text-emerald-400 mt-1">0.0 ms</p>
-          <span id="stat-fps" class="text-[11px] text-gray-400">0.0 FPS</span>
+
+        <!-- Latency & FPS Performance Gauge -->
+        <div class="p-4 rounded-xl bg-[#0f172a]/80 border border-emerald-900/40 backdrop-blur relative overflow-hidden group">
+          <div class="flex items-center justify-between text-emerald-400 text-xs font-bold">
+            <span>AI PERFORMANCE</span>
+            <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="flex items-baseline space-x-2 mt-2">
+            <p id="stat-fps" class="text-2xl md:text-3xl font-extrabold text-emerald-400">0.0 FPS</p>
+            <span id="stat-latency" class="text-xs text-slate-400">0.0 ms</span>
+          </div>
+          <div class="mt-1 text-[11px] text-emerald-400/90 font-bold">CPU Multi-Threaded Engine</div>
         </div>
       </div>
 
-      <!-- Main Stream and Incident Feed -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Video Feed & Incident Stream -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        
+        <!-- Camera Stream Viewport -->
         <div class="lg:col-span-2 space-y-3">
-          <div class="flex items-center justify-between font-mono text-xs">
-            <span class="text-gray-300 font-bold flex items-center space-x-1">
-              <i data-lucide="video" class="w-4 h-4 text-emerald-400"></i>
-              <span>LIVE CP PLUS CP-E25A SURVEILLANCE FEED</span>
-            </span>
-            <span class="text-emerald-400 font-bold">25+ FPS REAL-TIME</span>
-          </div>
-
-          <!-- Quick Clean AI Detection Mode & Filter Toolbar -->
-          <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gray-900 border border-gray-800 rounded-xl font-mono text-xs shadow-md">
+          
+          <!-- Stream Controls & Mode Filter Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-[#0f172a] border border-slate-800 rounded-xl font-mono text-xs shadow-lg">
             <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-              <span class="text-gray-400 font-bold text-[11px] mr-1">MODE:</span>
-              <button onclick="setMode('all')" id="mode-all" class="mode-btn px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold text-[11px]">ALL</button>
-              <button onclick="setMode('traffic')" id="mode-traffic" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">TRAFFIC / CARS</button>
-              <button onclick="setMode('damage')" id="mode-damage" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">ROAD DAMAGE</button>
-              <button onclick="setMode('pedestrian')" id="mode-pedestrian" class="mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]">PEDESTRIAN</button>
+              <span class="text-slate-400 font-bold text-[11px] mr-1 flex items-center">
+                <i data-lucide="filter" class="w-3.5 h-3.5 mr-1 text-cyan-400"></i>FILTER:
+              </span>
+              <button onclick="setMode('all')" id="mode-all" class="mode-btn px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold text-[11px] transition-all">ALL OBJECTS</button>
+              <button onclick="setMode('damage')" id="mode-damage" class="mode-btn px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white text-[11px] transition-all">DAMAGE ONLY</button>
+              <button onclick="setMode('traffic')" id="mode-traffic" class="mode-btn px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white text-[11px] transition-all">VEHICLES</button>
+              <button onclick="setMode('pedestrian')" id="mode-pedestrian" class="mode-btn px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white text-[11px] transition-all">PEDESTRIANS</button>
             </div>
-            <div class="flex items-center space-x-2">
-              <span class="text-gray-400 text-[11px]">SENSITIVITY:</span>
-              <input type="range" id="conf-slider" min="30" max="90" value="65" oninput="updateConfidence(this.value)" class="w-20 accent-cyan-400 cursor-pointer h-1.5 bg-gray-700 rounded-lg" />
-              <span id="conf-val" class="text-cyan-400 font-bold text-[11px] w-8">65%</span>
-            </div>
-          </div>
-
-          <div class="relative rounded-xl overflow-hidden border border-gray-800 bg-black aspect-video flex items-center justify-center group" id="player-container">
-            <!-- Live MJPEG Stream -->
-            <img id="stream-img" src="/api/v1/camera/stream" class="w-full h-full object-contain" alt="Surveillance Stream" onload="handleStreamLoaded()" onerror="handleStreamError()" />
-            <canvas id="detection-canvas" width="1280" height="720" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
-
-            <!-- Loading Spinner State -->
-            <div id="player-loading" class="absolute inset-0 bg-gray-950/80 flex flex-col items-center justify-center space-y-2 pointer-events-none transition-opacity duration-300">
-              <div class="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-              <span id="player-loading-text" class="text-xs font-mono text-cyan-400">CONNECTING STREAM / WAKING UP CLOUD AI...</span>
-            </div>
-
-            <!-- Error / Offline State -->
-            <div id="player-error" class="absolute inset-0 bg-gray-950/90 flex flex-col items-center justify-center space-y-3 p-4 text-center hidden">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-                <i data-lucide="activity" class="w-5 h-5 text-cyan-400 animate-pulse"></i>
-              </div>
-              <div class="space-y-1">
-                <p class="text-xs font-mono font-bold text-cyan-300">WAKING UP CLOUD NEURAL ENGINE</p>
-                <p id="player-error-msg" class="text-[11px] font-mono text-gray-400 max-w-sm">Cloud container is initializing. Auto-reconnecting in a moment...</p>
-              </div>
-              <button onclick="refreshStream()" class="px-3 py-1.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-mono hover:bg-cyan-500/30">FORCE RECONNECT</button>
-            </div>
-
-            <!-- Video Controls -->
-            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2.5 rounded-lg bg-gray-900/90 backdrop-blur border border-gray-800 opacity-90 group-hover:opacity-100">
-              <div class="flex items-center space-x-2">
-                <button id="btn-toggle-ai" onclick="toggleDetection()" class="px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold">PAUSE AI</button>
-                <button onclick="refreshStream()" class="px-2.5 py-1.5 rounded bg-gray-800 text-gray-300 border border-gray-700 text-xs font-mono hover:text-white flex items-center space-x-1">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                  <span>REFRESH</span>
+            
+            <div class="flex items-center space-x-3">
+              <!-- Source Switcher -->
+              <div class="flex items-center space-x-1 border-r border-slate-750 pr-2.5">
+                <button onclick="switchToLive()" id="btn-src-live" title="Connect to Live CP PLUS Camera" class="px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] hover:bg-emerald-500/30 transition-all flex items-center space-x-1">
+                  <i data-lucide="video" class="w-3 h-3"></i>
+                  <span>LIVE</span>
+                </button>
+                <button onclick="switchToDemo()" id="btn-src-demo" title="Switch to Bundled Highway Demo" class="px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white font-bold text-[11px] hover:bg-slate-700 transition-all flex items-center space-x-1">
+                  <i data-lucide="film" class="w-3 h-3"></i>
+                  <span>DEMO</span>
                 </button>
               </div>
-              <button onclick="toggleFullscreen()" class="p-1.5 rounded bg-gray-800 text-gray-300 border border-gray-700">
-                <i data-lucide="maximize-2" class="w-4 h-4"></i>
+
+              <div class="flex items-center space-x-1.5">
+                <span class="text-slate-400 text-[11px]">SENSITIVITY:</span>
+                <input type="range" id="conf-slider" min="20" max="85" value="50" oninput="updateConfidence(this.value)" class="w-16 accent-cyan-400 cursor-pointer h-1.5 bg-slate-700 rounded-lg" />
+                <span id="conf-val" class="text-cyan-400 font-bold text-[11px] w-7">50%</span>
+              </div>
+              <button id="btn-audio-alert" onclick="toggleAudioAlert()" title="Toggle Sound on Defect" class="px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 hover:text-cyan-400 transition-all flex items-center">
+                <i id="audio-icon" data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Player Box -->
+          <div class="relative rounded-2xl overflow-hidden border border-slate-800 bg-black aspect-video flex items-center justify-center group shadow-2xl" id="player-container">
+            <!-- Floating Mode & Source Indicator (Top Left of Video) -->
+            <div class="absolute top-3 left-3 flex items-center space-x-2 z-10 pointer-events-none">
+              <span id="player-feed-badge" class="px-2.5 py-1 rounded-md bg-slate-950/85 backdrop-blur border border-emerald-500/40 text-emerald-400 font-mono text-[11px] font-bold flex items-center space-x-1.5 shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="player-feed-text">LIVE CP-E25A</span>
+              </span>
+            </div>
+
+            <!-- MJPEG Live Stream -->
+            <img id="stream-img" src="/api/v1/camera/stream" class="w-full h-full object-contain" alt="Live Surveillance Stream" onload="handleStreamLoaded()" onerror="handleStreamError()" />
+
+            <!-- Loading Spinner State (Never blocks indefinitely) -->
+            <div id="player-loading" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center space-y-3 pointer-events-none transition-opacity duration-300">
+              <div class="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+              <span id="player-loading-text" class="text-xs font-mono font-bold tracking-wider text-cyan-300">SYNCHRONIZING ZERO-LATENCY VIDEO PIPELINE...</span>
+            </div>
+
+            <!-- Error / Reconnect State -->
+            <div id="player-error" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center space-y-3 p-4 text-center hidden">
+              <div class="w-12 h-12 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                <i data-lucide="activity" class="w-6 h-6 text-cyan-400 animate-pulse"></i>
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs font-mono font-bold text-cyan-300">WAKING UP NEURAL ENGINE</p>
+                <p id="player-error-msg" class="text-[11px] font-mono text-slate-400 max-w-sm">Re-synchronizing video stream with CP PLUS camera. Auto-retrying...</p>
+              </div>
+              <button onclick="refreshStream()" class="px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 text-xs font-mono font-bold hover:bg-cyan-500/30 transition-all">FORCE RECONNECT</button>
+            </div>
+
+            <!-- Floating In-Player HUD Bar -->
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2 rounded-xl bg-slate-950/85 backdrop-blur border border-slate-800/80 opacity-90 group-hover:opacity-100 transition-all">
+              <div class="flex items-center space-x-2">
+                <button id="btn-toggle-ai" onclick="toggleDetection()" class="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold hover:bg-rose-500/30 transition-all">
+                  <i data-lucide="pause" class="w-3.5 h-3.5 inline mr-1"></i>PAUSE AI
+                </button>
+                <button onclick="takeSnapshot()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-cyan-300 border border-slate-700 text-xs font-mono font-bold hover:text-white hover:bg-slate-750 transition-all flex items-center space-x-1">
+                  <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                  <span>SNAP</span>
+                </button>
+                <button onclick="refreshStream()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 text-xs font-mono hover:text-white transition-all">
+                  <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              <button onclick="toggleFullscreen()" class="p-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:text-white transition-all">
+                <i data-lucide="maximize" class="w-4 h-4"></i>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Incident Feed -->
+        <!-- Incident Feed Column -->
         <div class="space-y-3">
-          <h2 class="text-xs font-bold font-mono text-gray-300 uppercase tracking-wider flex items-center space-x-1">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-            <span>LIVE INCIDENT STREAM</span>
-          </h2>
-          <div id="incident-feed" class="rounded-xl border border-gray-800 bg-gray-900/60 p-3 h-[420px] overflow-y-auto space-y-2 font-mono text-xs">
-            <div class="text-center text-gray-500 py-16">Awaiting detection events...</div>
+          <div class="flex items-center justify-between font-mono text-xs">
+            <h2 class="font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+              <i data-lucide="bell-ring" class="w-4 h-4 text-amber-400"></i>
+              <span>TELEMETRY STREAM</span>
+            </h2>
+            <span id="incident-count-pill" class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400">0 events</span>
+          </div>
+
+          <div id="incident-feed" class="rounded-2xl border border-slate-800 bg-[#0f172a]/70 backdrop-blur p-3 h-[440px] overflow-y-auto space-y-2 font-mono text-xs">
+            <div class="text-center text-slate-500 py-24 flex flex-col items-center space-y-2">
+              <i data-lucide="radar" class="w-8 h-8 text-slate-600 animate-spin"></i>
+              <span>Monitoring camera stream...</span>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- TAB 2: LIVE CAMERA -->
-    <section id="view-live" class="space-y-6 hidden">
-      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-        <h2 class="text-sm font-bold font-mono text-white mb-2">DEDICATED FULL-FRAME CAMERA MONITOR</h2>
-        <p class="text-xs text-gray-400 font-mono mb-4">Continuous video streaming with sub-frame synchronized neural network predictions.</p>
-        <div class="aspect-video bg-black rounded-lg overflow-hidden border border-gray-800 relative">
+    <!-- VIEW 2: LIVE CAMERA -->
+    <section id="view-live" class="space-y-5 hidden">
+      <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between font-mono">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <i data-lucide="cctv" class="w-4 h-4 text-emerald-400"></i>
+              <span>FULL-FRAME EDGE HARDWARE VIEWPORT</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Direct RTSP H.264 stream with sub-frame synchronized neural network predictions.</p>
+          </div>
+          <button onclick="reconnectLiveCamera()" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold hover:bg-cyan-500/30">RECONNECT RTSP</button>
+        </div>
+        <div class="aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 relative shadow-2xl">
           <img src="/api/v1/camera/stream" class="w-full h-full object-contain" />
         </div>
       </div>
     </section>
 
-    <!-- TAB 3: ROAD DAMAGE -->
-    <section id="view-damage" class="space-y-6 hidden">
-      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-        <h2 class="text-sm font-bold font-mono text-rose-400 mb-2">ROAD DAMAGE CLASSIFICATION LOGS</h2>
-        <p class="text-xs text-gray-400 font-mono mb-4">Potholes (D40), Longitudinal Cracks (D00), Transverse Cracks (D10), Alligator Cracks (D20)</p>
-        <div id="damage-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs"></div>
-      </div>
-    </section>
-
-    <!-- TAB 4: OBJECTS -->
-    <section id="view-objects" class="space-y-6 hidden">
-      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-        <h2 class="text-sm font-bold font-mono text-cyan-400 mb-2">TRAFFIC & OBJECT RECOGNITION</h2>
-        <p class="text-xs text-gray-400 font-mono mb-4">Vehicles, Pedestrians, Bicycles, and Urban Infrastructure detected in camera viewport.</p>
-        <div id="object-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs"></div>
-      </div>
-    </section>
-
-    <!-- TAB 5: HISTORY -->
-    <section id="view-history" class="space-y-6 hidden">
-      <div class="p-4 rounded-xl bg-gray-900 border border-gray-800">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-sm font-bold font-mono text-white">SEARCHABLE DETECTION AUDIT TRAIL</h2>
-          <button onclick="exportCSV()" class="px-3 py-1.5 rounded bg-gray-800 text-cyan-400 border border-gray-700 text-xs font-mono font-bold">EXPORT CSV</button>
-        </div>
-        <table class="w-full text-left text-xs font-mono">
-          <thead class="bg-gray-950 border-b border-gray-800 text-gray-400">
-            <tr><th class="p-2.5">ID</th><th class="p-2.5">CATEGORY</th><th class="p-2.5">CLASS</th><th class="p-2.5">CONFIDENCE</th><th class="p-2.5">SNAPSHOT</th><th class="p-2.5">TIMESTAMP</th></tr>
-          </thead>
-          <tbody id="history-tbody" class="divide-y divide-gray-800"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- TAB 6: ANALYTICS -->
-    <section id="view-analytics" class="space-y-6 hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
-        <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-3">
-          <h3 class="text-rose-400 font-bold">ROAD DAMAGE BREAKDOWN</h3>
-          <div id="damage-analytics-bars" class="space-y-2"></div>
-        </div>
-        <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-3">
-          <h3 class="text-cyan-400 font-bold">TRAFFIC PARTICIPANT BREAKDOWN</h3>
-          <div id="object-analytics-bars" class="space-y-2"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 7: SETTINGS -->
-    <section id="view-settings" class="space-y-6 hidden max-w-2xl">
-      <div class="p-5 rounded-xl bg-gray-900 border border-gray-800 space-y-4 font-mono text-xs">
+    <!-- VIEW 3: ROAD DAMAGE -->
+    <section id="view-damage" class="space-y-5 hidden">
+      <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 font-mono">
         <div>
-          <h2 class="text-sm font-bold text-white">CP PLUS CP-E25A CONNECTION SETTINGS</h2>
-          <p class="text-[11px] text-gray-400 mt-1">Configure RTSP streams, ONVIF ports, or enter an Admin API Key for authenticated control.</p>
+          <h2 class="text-sm font-bold text-rose-400 flex items-center space-x-2">
+            <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i>
+            <span>ROAD DAMAGE CLASSIFICATION LOG (RDD2020 / RDD2022)</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Potholes (D40), Longitudinal Cracks (D00), Transverse Cracks (D10), Alligator Fatigue Cracks (D20).</p>
         </div>
-        <div class="space-y-3">
+        <div id="damage-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: VEHICLES & OBJECTS -->
+    <section id="view-objects" class="space-y-5 hidden">
+      <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 font-mono">
+        <div>
+          <h2 class="text-sm font-bold text-cyan-400 flex items-center space-x-2">
+            <i data-lucide="car" class="w-4 h-4 text-cyan-400"></i>
+            <span>URBAN TRAFFIC PARTICIPANT LOGS</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Vehicles (Cars, Buses, Trucks, Motorcycles) and Pedestrians detected in surveillance lane.</p>
+        </div>
+        <div id="object-list" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: HISTORY AUDIT -->
+    <section id="view-history" class="space-y-5 hidden">
+      <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 font-mono">
+        <div class="flex items-center justify-between">
           <div>
-            <label class="text-gray-400">ADMIN API KEY (X-API-Key)</label>
-            <input id="cfg-apikey" type="password" placeholder="Required for modifying camera or detection controls" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+              <i data-lucide="history" class="w-4 h-4 text-cyan-400"></i>
+              <span>DETECTION INCIDENT AUDIT TRAIL</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Searchable telemetry logs persisted to SQLite database with bounding box metrics.</p>
+          </div>
+          <button onclick="exportCSV()" class="px-3.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-bold hover:bg-cyan-500/30 flex items-center space-x-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>EXPORT CSV</span>
+          </button>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#090d16] border-b border-slate-800 text-slate-400 font-bold">
+              <tr>
+                <th class="p-3">INCIDENT ID</th>
+                <th class="p-3">CATEGORY</th>
+                <th class="p-3">CLASSIFICATION</th>
+                <th class="p-3">CONFIDENCE</th>
+                <th class="p-3">SNAPSHOT</th>
+                <th class="p-3">TIMESTAMP</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody" class="divide-y divide-slate-800/80 bg-[#0c121e]"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: ANALYTICS -->
+    <section id="view-analytics" class="space-y-5 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 font-mono text-xs">
+        <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 shadow-xl">
+          <h3 class="text-rose-400 font-bold flex items-center space-x-2">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i>
+            <span>ROAD DAMAGE BREAKDOWN</span>
+          </h3>
+          <div id="damage-analytics-bars" class="space-y-3"></div>
+        </div>
+        <div class="p-5 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 shadow-xl">
+          <h3 class="text-cyan-400 font-bold flex items-center space-x-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+            <span>TRAFFIC PARTICIPANT DISTRIBUTION</span>
+          </h3>
+          <div id="object-analytics-bars" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 7: SETTINGS -->
+    <section id="view-settings" class="space-y-5 hidden max-w-2xl font-mono">
+      <div class="p-6 rounded-2xl bg-[#0f172a] border border-slate-800 space-y-4 text-xs shadow-2xl">
+        <div>
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+            <span>CAMERA & INGRESS CONFIGURATION</span>
+          </h2>
+          <p class="text-[11px] text-slate-400 mt-1">Configure RTSP stream parameters or enter an Admin API Key for protected control endpoints.</p>
+        </div>
+        <div class="space-y-3.5">
+          <div>
+            <label class="text-slate-400 font-bold">ADMIN API KEY (X-API-Key)</label>
+            <input id="cfg-apikey" type="password" placeholder="Required in production for updating camera / AI state" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
           </div>
           <div>
-            <label class="text-gray-400">CAMERA IP ADDRESS</label>
-            <input id="cfg-ip" type="text" placeholder="192.168.1.100" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+            <label class="text-slate-400 font-bold">CAMERA IP ADDRESS</label>
+            <input id="cfg-ip" type="text" placeholder="192.168.29.47" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-gray-400">RTSP PORT</label>
-              <input id="cfg-port" type="number" placeholder="5543" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+              <label class="text-slate-400 font-bold">RTSP PORT</label>
+              <input id="cfg-port" type="number" placeholder="5543" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
             </div>
             <div>
-              <label class="text-gray-400">RTSP STREAM PATH</label>
-              <input id="cfg-path" type="text" placeholder="/live/channel1" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+              <label class="text-slate-400 font-bold">STREAM PATH</label>
+              <input id="cfg-path" type="text" placeholder="/live/channel1" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-gray-400">USERNAME</label>
-              <input id="cfg-user" type="text" placeholder="admin" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+              <label class="text-slate-400 font-bold">USERNAME</label>
+              <input id="cfg-user" type="text" placeholder="admin" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
             </div>
             <div>
-              <label class="text-gray-400">PASSWORD</label>
-              <input id="cfg-pwd" type="password" placeholder="••••••••" class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-white mt-1" />
+              <label class="text-slate-400 font-bold">PASSWORD</label>
+              <input id="cfg-pwd" type="password" placeholder="Admin1234" class="w-full bg-[#090d16] border border-slate-700 rounded-lg p-2.5 text-white mt-1 focus:border-cyan-400 focus:outline-none" />
             </div>
           </div>
           <div class="pt-2 flex items-center space-x-3">
-            <button onclick="saveCameraSettings()" class="px-4 py-2 rounded bg-cyan-500 text-black font-bold hover:bg-cyan-400">UPDATE & RECONNECT CAMERA</button>
+            <button onclick="saveCameraSettings()" class="px-5 py-2.5 rounded-lg bg-cyan-500 text-slate-950 font-extrabold hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20">UPDATE & RECONNECT</button>
             <span id="cfg-status" class="text-emerald-400 font-bold"></span>
           </div>
         </div>
@@ -279,6 +418,50 @@
   </main>
 
   <script>
+    // State
+    let isAiActive = true;
+    let currentMode = 'all';
+    let audioAlertsEnabled = false;
+    let ws = null;
+    let historicalData = [];
+    let audioCtx = null;
+
+    // Clock
+    setInterval(() => {
+      const el = document.getElementById('live-clock');
+      if (el) el.innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    // Audio Alert Synthesizer
+    function toggleAudioAlert() {
+      audioAlertsEnabled = !audioAlertsEnabled;
+      const btn = document.getElementById('btn-audio-alert');
+      const icon = document.getElementById('audio-icon');
+      if (audioAlertsEnabled) {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        btn.className = "px-2 py-1 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition-all flex items-center";
+        playAlertSound(600, 0.1);
+      } else {
+        btn.className = "px-2 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 hover:text-cyan-400 transition-all flex items-center";
+      }
+    }
+
+    function playAlertSound(freq = 880, duration = 0.15) {
+      if (!audioAlertsEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
     // Tab Switching
     function switchTab(tabId) {
       document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
@@ -286,9 +469,9 @@
 
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.tab === tabId) {
-          btn.className = "tab-btn px-3 py-2 rounded-md transition-all bg-cyan-500/10 text-cyan-400 border border-cyan-500/30";
+          btn.className = "tab-btn px-3 py-1.5 rounded-lg transition-all bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 font-bold";
         } else {
-          btn.className = "tab-btn px-3 py-2 rounded-md transition-all text-gray-400 hover:text-white";
+          btn.className = "tab-btn px-3 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white";
         }
       });
 
@@ -298,23 +481,14 @@
       if (tabId === 'objects') loadObjects();
     }
 
-    // State & WebSocket
-    let isAiActive = true;
-    let showCanvasOverlay = false;  // Disabled by default to prevent doubled boxes over MJPEG stream
-    let currentMode = 'all';
-    let ws = null;
-    let canvas = document.getElementById('detection-canvas');
-    let ctx = canvas.getContext('2d');
-    let historicalData = [];
-
     function setMode(mode) {
       currentMode = mode;
       document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.className = "mode-btn px-2.5 py-1 rounded bg-gray-800 text-gray-300 border border-gray-700 hover:text-white text-[11px]";
+        btn.className = "mode-btn px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white text-[11px] transition-all";
       });
       const activeBtn = document.getElementById('mode-' + mode);
       if (activeBtn) {
-        activeBtn.className = "mode-btn px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 font-bold text-[11px]";
+        activeBtn.className = "mode-btn px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold text-[11px] transition-all";
       }
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ command: "set_mode", mode: mode }));
@@ -333,15 +507,22 @@
       const img = document.getElementById('stream-img');
       const loader = document.getElementById('player-loading');
       const errOverlay = document.getElementById('player-error');
-      if (loader) loader.classList.remove('hidden');
+      if (loader) {
+        loader.classList.remove('hidden');
+        loader.style.opacity = '1';
+      }
       if (errOverlay) errOverlay.classList.add('hidden');
       img.src = '/api/v1/camera/stream?t=' + Date.now();
+      setTimeout(handleStreamLoaded, 600);
     }
 
     function handleStreamLoaded() {
       const loader = document.getElementById('player-loading');
       const errOverlay = document.getElementById('player-error');
-      if (loader) loader.classList.add('hidden');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => { loader.classList.add('hidden'); }, 200);
+      }
       if (errOverlay) errOverlay.classList.add('hidden');
     }
 
@@ -350,7 +531,6 @@
       const errOverlay = document.getElementById('player-error');
       if (loader) loader.classList.add('hidden');
       if (errOverlay) errOverlay.classList.remove('hidden');
-      // Automatically attempt retry in 3.5s and poll health
       setTimeout(() => {
         fetch('/health')
           .then(r => r.json())
@@ -359,6 +539,86 @@
       }, 3500);
     }
 
+    function takeSnapshot() {
+      const img = document.getElementById('stream-img');
+      if (!img) return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 640;
+        canvas.height = img.naturalHeight || 360;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const link = document.createElement('a');
+        link.download = `ROAD_DEFECT_SNAP_${Date.now()}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.92);
+        link.click();
+      } catch (e) {
+        window.open('/api/v1/camera/stream', '_blank');
+      }
+    }
+
+    async function switchToLive() {
+      const feedText = document.getElementById('player-feed-text');
+      if (feedText) feedText.innerText = "CONNECTING LIVE...";
+      try {
+        const res = await fetch('/api/v1/camera/mode/live', { method: 'POST' });
+        const data = await res.json();
+        updateFeedButtons('live');
+        refreshStream();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function switchToDemo() {
+      const feedText = document.getElementById('player-feed-text');
+      if (feedText) feedText.innerText = "SWITCHING TO DEMO...";
+      try {
+        const res = await fetch('/api/v1/camera/mode/demo', { method: 'POST' });
+        const data = await res.json();
+        updateFeedButtons('demo');
+        refreshStream();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function updateFeedButtons(mode) {
+      const btnLive = document.getElementById('btn-src-live');
+      const btnDemo = document.getElementById('btn-src-demo');
+      const feedText = document.getElementById('player-feed-text');
+      const feedBadge = document.getElementById('player-feed-badge');
+      if (mode === 'live') {
+        if (btnLive) btnLive.className = "px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] transition-all flex items-center space-x-1";
+        if (btnDemo) btnDemo.className = "px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white font-bold text-[11px] transition-all flex items-center space-x-1";
+        if (feedText) feedText.innerText = "LIVE CP-E25A";
+        if (feedBadge) feedBadge.className = "px-2.5 py-1 rounded-md bg-slate-950/85 backdrop-blur border border-emerald-500/40 text-emerald-400 font-mono text-[11px] font-bold flex items-center space-x-1.5 shadow-lg";
+      } else {
+        if (btnDemo) btnDemo.className = "px-2 py-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[11px] transition-all flex items-center space-x-1";
+        if (btnLive) btnLive.className = "px-2 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 hover:text-white font-bold text-[11px] transition-all flex items-center space-x-1";
+        if (feedText) feedText.innerText = "DEMO ROAD RUNNER";
+        if (feedBadge) feedBadge.className = "px-2.5 py-1 rounded-md bg-slate-950/85 backdrop-blur border border-amber-500/40 text-amber-400 font-mono text-[11px] font-bold flex items-center space-x-1.5 shadow-lg";
+      }
+    }
+
+    async function reconnectLiveCamera() {
+      const badge = document.getElementById('demo-mode-badge');
+      const text = document.getElementById('demo-mode-text');
+      text.innerText = "PROBING CP-E25A...";
+      try {
+        const res = await fetch('/api/v1/camera/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ip_address: '192.168.29.47', rtsp_port: 5543, username: 'admin', password: 'Admin1234' })
+        });
+        const data = await res.json();
+        refreshStream();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // WebSocket Handlers
     function connectWs() {
       const loc = window.location;
       const wsUri = (loc.protocol === "https:" ? "wss:" : "ws:") + "//" + loc.host + "/ws/detections";
@@ -383,7 +643,7 @@
       ws.onclose = () => {
         document.getElementById('ws-dot').className = "w-2 h-2 rounded-full bg-rose-500";
         document.getElementById('ws-state-badge').innerText = "WS RECONNECTING";
-        setTimeout(connectWs, 3000);
+        setTimeout(connectWs, 2500);
       };
     }
 
@@ -398,11 +658,11 @@
       const isDemo = !!(camera.demo_mode || camera.is_synthetic);
       if (demoBadge && demoDot && demoText) {
         if (isDemo) {
-          demoBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30";
+          demoBadge.className = "cursor-pointer flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20";
           demoDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
           demoText.innerText = "DEMO ROAD AI";
         } else {
-          demoBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30";
+          demoBadge.className = "cursor-pointer flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20";
           demoDot.className = "w-2 h-2 rounded-full bg-emerald-400";
           demoText.innerText = "LIVE CAMERA";
         }
@@ -411,7 +671,7 @@
       const st = (camera.state || '').toUpperCase();
       if (st === 'STREAMING' || st === 'CONNECTED') {
         dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
-        badge.innerText = isDemo ? "DEMO STREAM" : "LIVE STREAM";
+        badge.innerText = isDemo ? "DEMO FEED" : "LIVE 5543";
         handleStreamLoaded();
       } else if (st === 'RECONNECTING' || st === 'CONNECTING') {
         dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
@@ -427,15 +687,17 @@
       const btn = document.getElementById('btn-toggle-ai');
       if (btn) {
         if (isAiActive) {
-          btn.innerText = "PAUSE AI";
-          btn.className = "px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold";
+          btn.innerHTML = '<i data-lucide="pause" class="w-3.5 h-3.5 inline mr-1"></i>PAUSE AI';
+          btn.className = "px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-mono font-bold hover:bg-rose-500/30 transition-all";
         } else {
-          btn.innerText = "RESUME AI";
-          btn.className = "px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-mono font-bold";
+          btn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5 inline mr-1"></i>RESUME AI';
+          btn.className = "px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold hover:bg-emerald-500/30 transition-all";
         }
+        lucide.createIcons();
       }
     }
 
+    let eventCount = 0;
     function handleTelemetry(data) {
       document.getElementById('stat-fps').innerText = (data.fps || 0).toFixed(1) + " FPS";
       document.getElementById('stat-latency').innerText = (data.latency_ms || 0).toFixed(1) + " ms";
@@ -446,45 +708,41 @@
         document.getElementById('stat-total').innerText = data.counts.total;
       }
 
-      if (showCanvasOverlay) {
-        renderCanvasBoxes(data.detections || []);
-      }
-
       if (data.detections && data.detections.length > 0) {
-        prependIncident(data.detections[0]);
+        data.detections.forEach(det => {
+          prependIncident(det);
+          if (det.category === 'road_damage') {
+            playAlertSound(750, 0.2);
+          }
+        });
       }
-    }
-
-    function renderCanvasBoxes(detections) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      detections.forEach(det => {
-        const [cx, cy, nw, nh] = det.normalized_bbox;
-        const x = (cx - nw / 2) * canvas.width;
-        const y = (cy - nh / 2) * canvas.height;
-        const w = nw * canvas.width;
-        const h = nh * canvas.height;
-        const isDmg = det.category === 'road_damage';
-
-        ctx.strokeStyle = isDmg ? '#ff2a55' : '#00e5ff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, w, h);
-
-        ctx.fillStyle = isDmg ? '#ff2a55' : '#00e5ff';
-        const label = (isDmg ? '[DMG] ' : '[OBJ] ') + det.class_name.toUpperCase() + ' ' + (det.confidence * 100).toFixed(0) + '%';
-        ctx.font = '12px JetBrains Mono';
-        ctx.fillRect(x, Math.max(0, y - 18), ctx.measureText(label).width + 8, 18);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(label, x + 4, Math.max(12, y - 5));
-      });
     }
 
     function prependIncident(det) {
       const feed = document.getElementById('incident-feed');
-      if (feed.children.length > 30) feed.removeChild(feed.lastChild);
+      if (feed.querySelector('.text-center')) feed.innerHTML = '';
+      if (feed.children.length > 25) feed.removeChild(feed.lastChild);
+
+      eventCount++;
+      document.getElementById('incident-count-pill').innerText = `${eventCount} events`;
+
       const isDmg = det.category === 'road_damage';
       const div = document.createElement('div');
-      div.className = `p-2 rounded border flex justify-between items-center ${isDmg ? 'bg-rose-950/30 border-rose-800/40 text-rose-300' : 'bg-cyan-950/30 border-cyan-800/40 text-cyan-300'}`;
-      div.innerHTML = `<div><span class="font-bold mr-2">[${isDmg ? 'DAMAGE' : 'OBJECT'}]</span><span>${det.class_name.toUpperCase()}</span></div><span class="font-bold">${(det.confidence * 100).toFixed(0)}%</span>`;
+      div.className = `p-2.5 rounded-xl border flex justify-between items-center transition-all ${
+        isDmg ? 'bg-rose-950/40 border-rose-800/50 text-rose-200' : 'bg-cyan-950/40 border-cyan-800/50 text-cyan-200'
+      }`;
+      div.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isDmg ? 'bg-rose-500/30 text-rose-300' : 'bg-cyan-500/30 text-cyan-300'}">
+            ${isDmg ? 'DEFECT' : 'TRAFFIC'}
+          </span>
+          <span class="font-bold">${det.class_name.toUpperCase()}</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="font-mono text-xs text-slate-400">${(det.confidence * 100).toFixed(0)}%</span>
+          <span class="text-[10px] text-slate-500">now</span>
+        </div>
+      `;
       feed.insertBefore(div, feed.firstChild);
     }
 
@@ -498,25 +756,14 @@
       try {
         const res = await fetch(endpoint, { method: 'POST', headers: headers });
         if (res.status === 401 || res.status === 403) {
-          alert("Public Read-Only Mode: An Admin API Key (X-API-Key) is required to pause or resume AI detection. Enter your key in the Settings tab.");
+          alert("Admin API Key required to change detection status. Set key in Settings tab.");
           return;
         }
         isAiActive = !isAiActive;
-        if (isAiActive) {
-          btn.innerText = "PAUSE AI";
-          btn.className = "px-3 py-1.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-mono font-bold";
-        } else {
-          btn.innerText = "RESUME AI";
-          btn.className = "px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-mono font-bold";
-        }
+        handleDetectionState(isAiActive);
       } catch (e) {
-        console.error("AI toggle error:", e);
+        console.error(e);
       }
-    }
-
-    function toggleCanvas() {
-      showCanvasOverlay = !showCanvasOverlay;
-      if (!showCanvasOverlay) ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     function toggleFullscreen() {
@@ -530,15 +777,15 @@
       historicalData = res.detections || [];
       const tbody = document.getElementById('history-tbody');
       tbody.innerHTML = historicalData.map(d => `
-        <tr class="hover:bg-gray-800/40">
-          <td class="p-2.5 text-gray-400 font-mono">${d.id.slice(0, 8)}...</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] ${d.category === 'road_damage' ? 'bg-rose-500/20 text-rose-400' : 'bg-cyan-500/20 text-cyan-400'}">${d.category.toUpperCase()}</span></td>
-          <td class="p-2.5 text-white font-bold">${d.class_name.toUpperCase()}</td>
-          <td class="p-2.5 text-cyan-400 font-bold">${(d.confidence * 100).toFixed(1)}%</td>
-          <td class="p-2.5">
-            ${d.snapshot_path ? `<a href="${d.snapshot_path}" target="_blank" class="inline-flex items-center text-xs text-cyan-400 hover:text-cyan-300"><img src="${d.snapshot_path}" class="w-8 h-8 rounded border border-gray-700 object-cover mr-1.5" />View</a>` : `<span class="text-gray-600">-</span>`}
+        <tr class="hover:bg-slate-800/50 transition-colors">
+          <td class="p-3 text-slate-400 font-mono">${d.id.slice(0, 8)}...</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] ${d.category === 'road_damage' ? 'bg-rose-500/20 text-rose-400' : 'bg-cyan-500/20 text-cyan-400'}">${d.category.toUpperCase()}</span></td>
+          <td class="p-3 text-white font-bold">${d.class_name.toUpperCase()}</td>
+          <td class="p-3 text-cyan-400 font-bold">${(d.confidence * 100).toFixed(1)}%</td>
+          <td class="p-3">
+            ${d.snapshot_path ? `<a href="${d.snapshot_path}" target="_blank" class="inline-flex items-center text-xs text-cyan-400 hover:text-cyan-300"><img src="${d.snapshot_path}" class="w-8 h-8 rounded border border-slate-700 object-cover mr-1.5" />View</a>` : `<span class="text-slate-600">-</span>`}
           </td>
-          <td class="p-2.5 text-gray-400">${new Date(d.timestamp * 1000).toLocaleTimeString()}</td>
+          <td class="p-3 text-slate-400">${new Date(d.timestamp * 1000).toLocaleTimeString()}</td>
         </tr>
       `).join('');
     }
@@ -547,17 +794,17 @@
       const res = await fetch('/api/v1/detections?category=road_damage&page_size=12').then(r => r.json());
       const list = document.getElementById('damage-list');
       if (!res.detections || res.detections.length === 0) {
-        list.innerHTML = `<div class="col-span-3 text-center py-12 text-gray-500">No road damage incidents recorded yet.</div>`;
+        list.innerHTML = `<div class="col-span-3 text-center py-16 text-slate-500">No road damage incidents recorded yet.</div>`;
         return;
       }
       list.innerHTML = res.detections.map(d => `
-        <div class="p-3 rounded-lg bg-gray-950 border border-rose-900/40 space-y-2">
-          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-32 object-cover rounded border border-gray-800" />` : `<div class="w-full h-32 bg-gray-900 rounded flex items-center justify-center text-gray-600">No Snapshot</div>`}
+        <div class="p-3.5 rounded-xl bg-[#0c121e] border border-rose-900/40 space-y-2.5 shadow-lg">
+          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-36 object-cover rounded-lg border border-slate-800" />` : `<div class="w-full h-36 bg-slate-900 rounded-lg flex items-center justify-center text-slate-600">No Snapshot</div>`}
           <div class="flex justify-between items-center">
             <span class="font-bold text-rose-400">${d.class_name.toUpperCase()}</span>
             <span class="text-xs text-cyan-300 font-bold">${(d.confidence * 100).toFixed(0)}%</span>
           </div>
-          <div class="text-[10px] text-gray-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
+          <div class="text-[10px] text-slate-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
         </div>
       `).join('');
     }
@@ -566,17 +813,17 @@
       const res = await fetch('/api/v1/detections?category=general_object&page_size=12').then(r => r.json());
       const list = document.getElementById('object-list');
       if (!res.detections || res.detections.length === 0) {
-        list.innerHTML = `<div class="col-span-3 text-center py-12 text-gray-500">No traffic objects logged yet.</div>`;
+        list.innerHTML = `<div class="col-span-3 text-center py-16 text-slate-500">No traffic objects logged yet.</div>`;
         return;
       }
       list.innerHTML = res.detections.map(d => `
-        <div class="p-3 rounded-lg bg-gray-950 border border-cyan-900/40 space-y-2">
-          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-32 object-cover rounded border border-gray-800" />` : `<div class="w-full h-32 bg-gray-900 rounded flex items-center justify-center text-gray-600">No Snapshot</div>`}
+        <div class="p-3.5 rounded-xl bg-[#0c121e] border border-cyan-900/40 space-y-2.5 shadow-lg">
+          ${d.snapshot_path ? `<img src="${d.snapshot_path}" class="w-full h-36 object-cover rounded-lg border border-slate-800" />` : `<div class="w-full h-36 bg-slate-900 rounded-lg flex items-center justify-center text-slate-600">No Snapshot</div>`}
           <div class="flex justify-between items-center">
-            <span class="font-bold text-cyan-400">${d.class_name.toUpperCase()}</span>
+            <span class="font-bold text-cyan-300">${d.class_name.toUpperCase()}</span>
             <span class="text-xs text-white font-bold">${(d.confidence * 100).toFixed(0)}%</span>
           </div>
-          <div class="text-[10px] text-gray-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
+          <div class="text-[10px] text-slate-500">${new Date(d.timestamp * 1000).toLocaleString()}</div>
         </div>
       `).join('');
     }
@@ -585,14 +832,18 @@
       const st = await fetch('/api/v1/statistics').then(r => r.json());
       const dmgDiv = document.getElementById('damage-analytics-bars');
       dmgDiv.innerHTML = Object.entries(st.damage_by_class || {}).map(([k, v]) => `
-        <div><div class="flex justify-between mb-1"><span class="uppercase">${k.replace('_', ' ')}</span><span class="text-rose-400 font-bold">${v}</span></div>
-        <div class="h-2 bg-gray-800 rounded-full"><div style="width: ${Math.min(100, v * 10)}%" class="h-full bg-rose-500 rounded-full"></div></div></div>
+        <div>
+          <div class="flex justify-between mb-1.5"><span class="uppercase">${k.replace('_', ' ')}</span><span class="text-rose-400 font-bold">${v}</span></div>
+          <div class="h-2.5 bg-slate-800 rounded-full overflow-hidden"><div style="width: ${Math.min(100, v * 15)}%" class="h-full bg-gradient-to-r from-rose-600 to-rose-400 rounded-full transition-all duration-500"></div></div>
+        </div>
       `).join('');
 
       const objDiv = document.getElementById('object-analytics-bars');
       objDiv.innerHTML = Object.entries(st.objects_by_class || {}).map(([k, v]) => `
-        <div><div class="flex justify-between mb-1"><span class="uppercase">${k}</span><span class="text-cyan-400 font-bold">${v}</span></div>
-        <div class="h-2 bg-gray-800 rounded-full"><div style="width: ${Math.min(100, v * 10)}%" class="h-full bg-cyan-500 rounded-full"></div></div></div>
+        <div>
+          <div class="flex justify-between mb-1.5"><span class="uppercase">${k}</span><span class="text-cyan-400 font-bold">${v}</span></div>
+          <div class="h-2.5 bg-slate-800 rounded-full overflow-hidden"><div style="width: ${Math.min(100, v * 15)}%" class="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-500"></div></div>
+        </div>
       `).join('');
     }
 
@@ -627,11 +878,6 @@
           headers: headers,
           body: JSON.stringify(payload)
         });
-        if (res.status === 401 || res.status === 403) {
-          statusEl.className = "text-rose-400 font-bold";
-          statusEl.innerText = "Forbidden: Valid Admin API Key (X-API-Key) required to update camera.";
-          return;
-        }
         const data = await res.json();
         statusEl.className = data.success ? "text-emerald-400 font-bold" : "text-amber-400 font-bold";
         statusEl.innerText = data.message;
@@ -648,13 +894,21 @@
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `detections_${Date.now()}.csv`;
+      a.download = `road_detections_${Date.now()}.csv`;
       a.click();
     }
 
     window.onload = () => {
       lucide.createIcons();
       connectWs();
+      // Ensure loading spinner never obscures video
+      setTimeout(handleStreamLoaded, 400);
+      setInterval(() => {
+        const img = document.getElementById('stream-img');
+        if (img && (img.naturalWidth > 0 || img.complete)) {
+          handleStreamLoaded();
+        }
+      }, 500);
     };
   </script>
 </body>

@@ -79,6 +79,28 @@ async def disconnect_camera():
     }
 
 
+@router.post("/mode/demo")
+async def switch_camera_to_demo():
+    """Switches stream to loop bundled road damage footage."""
+    camera_manager.switch_to_demo()
+    await ws_manager.broadcast({
+        "event": "CAMERA_STATUS_CHANGED",
+        "camera": camera_manager.stream_info
+    })
+    return {"success": True, "mode": "demo", "camera_status": camera_manager.stream_info}
+
+
+@router.post("/mode/live")
+async def switch_camera_to_live():
+    """Switches stream to real CP PLUS physical camera."""
+    success = camera_manager.switch_to_live()
+    await ws_manager.broadcast({
+        "event": "CAMERA_STATUS_CHANGED",
+        "camera": camera_manager.stream_info
+    })
+    return {"success": success, "mode": "live" if success else "demo_fallback", "camera_status": camera_manager.stream_info}
+
+
 @router.get("/stream")
 async def get_camera_stream():
     """

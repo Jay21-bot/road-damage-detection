@@ -424,14 +424,14 @@ class DetectionService:
 
             # Compress to JPEG
             try:
-                jpeg_bytes = video_pipeline.encode_jpeg(annotated, quality=75)
+                jpeg_bytes = video_pipeline.encode_jpeg(annotated, quality=65)
                 yield (
                     b"--frame\r\n"
                     b"Content-Type: image/jpeg\r\n\r\n" + jpeg_bytes + b"\r\n"
                 )
             except Exception as e:
                 logger.error(f"JPEG encoding failed in MJPEG stream: {e}")
-                time.sleep(0.05)
+            time.sleep(0.02)
 
 
 detection_service = DetectionService()

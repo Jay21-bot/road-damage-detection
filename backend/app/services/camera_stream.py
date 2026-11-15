@@ -4,6 +4,8 @@ Provides RTSP stream connection, profile discovery, health monitoring,
 resilient reconnection, and synthetic stream fallback.
 """
 
+import os
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|fflags;nobuffer|max_delay;500000"
 import time
 import socket
 import threading
@@ -264,6 +266,9 @@ class CameraStreamManager:
             return True
 
         target_url = rtsp_url or settings.get_rtsp_url()
+        # If password is missing in standard url, supply configured password or device default
+        if "@" in target_url and (":@" in target_url or "rtsp://admin:@" in target_url):
+            target_url = target_url.replace("rtsp://admin:@", f"rtsp://admin:{settings.CAMERA_PASSWORD or 'Admin1234'}@")
         masked_url = self._mask_url(target_url)
         logger.info(f"Initiating connection to CP PLUS camera at {masked_url}")
 
@@ -278,8 +283,10 @@ class CameraStreamManager:
                 logger.info(f"Switching camera IP from {host} to {found_ip}")
                 settings.CAMERA_IP = found_ip
                 host = found_ip
-                stream_path = "/live/channel1" if "channel1" in (settings.CAMERA_RTSP_OVERRIDE_URL or "") else "/live/channel0"
-                settings.CAMERA_RTSP_OVERRIDE_URL = f"rtsp://{settings.CAMERA_USERNAME}:{settings.CAMERA_PASSWORD}@{found_ip}:{port}{stream_path}"
+                stream_path = settings.CAMERA_RTSP_PATH if settings.CAMERA_RTSP_PATH else "/live/channel1"
+                pwd = settings.CAMERA_PASSWORD or "Admin1234"
+                user = settings.CAMERA_USERNAME or "admin"
+                settings.CAMERA_RTSP_OVERRIDE_URL = f"rtsp://{user}:{pwd}@{found_ip}:{port}{stream_path}"
                 target_url = settings.CAMERA_RTSP_OVERRIDE_URL
                 masked_url = self._mask_url(target_url)
                 is_reachable = True
@@ -410,6 +417,26 @@ class CameraStreamManager:
             self._thread = None
             logger.info("Camera stream cleanly disconnected.")
 
+    def switch_to_demo(self):
+        """Switches stream to demo highway footage with dual-YOLO inference."""
+        self.disconnect()
+        self._stop_requested.clear()
+        with self._lock:
+            self._state = CameraState.STREAMING
+            self._is_demo_active = True
+            self._active_rtsp_url = "DEMO_ROAD_STREAM"
+            self._last_error = None
+        self._thread = threading.Thread(target=self._demo_ingestion_loop, daemon=True, name="Demo_Ingestion")
+        self._thread.start()
+        logger.info("Stream switched to DEMO road footage.")
+
+    def switch_to_live(self) -> bool:
+        """Switches stream to physical CP PLUS camera."""
+        self.disconnect()
+        with self._lock:
+            self._is_demo_active = False
+        return self.connect()
+
     def get_latest_frame(self) -> Tuple[bool, Optional[np.ndarray]]:
         """Retrieves the most recent frame captured from the stream."""
         with self._lock:
@@ -476,8 +503,10 @@ class CameraStreamManager:
             if found_ip:
                 logger.info(f"Auto-discovery relocated camera to {found_ip}:{port}")
                 settings.CAMERA_IP = found_ip
-                stream_path = "/live/channel1" if "channel1" in (settings.CAMERA_RTSP_OVERRIDE_URL or "") else "/live/channel0"
-                settings.CAMERA_RTSP_OVERRIDE_URL = f"rtsp://{settings.CAMERA_USERNAME}:{settings.CAMERA_PASSWORD}@{found_ip}:{port}{stream_path}"
+                stream_path = settings.CAMERA_RTSP_PATH if settings.CAMERA_RTSP_PATH else "/live/channel1"
+                pwd = settings.CAMERA_PASSWORD or "Admin1234"
+                user = settings.CAMERA_USERNAME or "admin"
+                settings.CAMERA_RTSP_OVERRIDE_URL = f"rtsp://{user}:{pwd}@{found_ip}:{port}{stream_path}"
                 self._active_rtsp_url = settings.CAMERA_RTSP_OVERRIDE_URL
             else:
                 with self._lock:

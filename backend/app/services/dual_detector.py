@@ -7,6 +7,7 @@ handles frame-skipping, IoU deduplication, border suppression, and aggregated te
 import time
 import uuid
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any, Optional, Tuple
 import cv2
 import numpy as np
@@ -43,6 +44,7 @@ class DualYoloInferenceEngine:
         self.mode: str = "all"  # 'all', 'traffic', 'damage', 'pedestrian'
         self.road_damage_conf: float = settings.ROAD_DAMAGE_CONF_THRESHOLD
         self.general_object_conf: float = settings.GENERAL_OBJECT_CONF_THRESHOLD
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DualYolo")
 
     @property
     def status(self) -> Dict[str, Any]:
@@ -112,12 +114,13 @@ class DualYoloInferenceEngine:
 
         orig_h, orig_w = frame.shape[:2]
 
-        # Fast downscale for inference if frame is larger than 640x360
+        # Fast downscale for rapid CPU inference
         scale_x, scale_y = 1.0, 1.0
-        if orig_w > 640 or orig_h > 480:
-            infer_w = 640
-            infer_h = int(orig_h * (640.0 / orig_w))
-            infer_frame = cv2.resize(frame, (infer_w, infer_h))
+        target_max_w = 480
+        if orig_w > target_max_w:
+            infer_w = target_max_w
+            infer_h = int(orig_h * (float(target_max_w) / orig_w))
+            infer_frame = cv2.resize(frame, (infer_w, infer_h), interpolation=cv2.INTER_LINEAR)
             scale_x = orig_w / float(infer_w)
             scale_y = orig_h / float(infer_h)
         else:
@@ -126,9 +129,15 @@ class DualYoloInferenceEngine:
         fused: List[Dict[str, Any]] = []
         t_damage, t_object = 0.0, 0.0
 
-        # 1. Road Damage Detection (if enabled by mode)
+        # Concurrent parallel inference across CPU cores
+        futures = {}
         if current_mode in ("all", "damage"):
-            damage_detections, t_damage = road_damage_detector.detect(infer_frame, conf_threshold=dmg_conf)
+            futures["damage"] = self._executor.submit(road_damage_detector.detect, infer_frame, dmg_conf)
+        if current_mode in ("all", "traffic", "pedestrian"):
+            futures["object"] = self._executor.submit(general_detector.detect, infer_frame, obj_conf)
+
+        if "damage" in futures:
+            damage_detections, t_damage = futures["damage"].result()
             for d in damage_detections:
                 x1, y1, x2, y2 = d["bbox"]
                 d["bbox"] = [int(x1 * scale_x), int(y1 * scale_y), int(x2 * scale_x), int(y2 * scale_y)]
@@ -136,14 +145,11 @@ class DualYoloInferenceEngine:
                 d["timestamp"] = time.time()
                 fused.append(d)
 
-        # 2. General Object Detection (if enabled by mode)
-        if current_mode in ("all", "traffic", "pedestrian"):
-            obj_detections, t_object = general_detector.detect(infer_frame, conf_threshold=obj_conf)
+        if "object" in futures:
+            obj_detections, t_object = futures["object"].result()
             for obj in obj_detections:
-                # If pedestrian-only mode, skip non-pedestrians
                 if current_mode == "pedestrian" and obj["class_name"] != "pedestrian":
                     continue
-                # If traffic-only mode, skip pedestrians
                 if current_mode == "traffic" and obj["class_name"] == "pedestrian":
                     continue
 

@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     GENERAL_OBJECT_MODEL_PATH: str = "models/yolov8n.pt"
     ROAD_DAMAGE_CONF_THRESHOLD: float = 0.35
     GENERAL_OBJECT_CONF_THRESHOLD: float = 0.45
-    INFERENCE_IMAGE_SIZE: int = 640
+    INFERENCE_IMAGE_SIZE: int = 320
     FRAME_SKIP: int = 2
 
     # Storage & Persistence

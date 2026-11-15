@@ -205,7 +205,7 @@ class VideoPipeline:
         return annotated
 
     @staticmethod
-    def encode_jpeg(frame: np.ndarray, quality: int = 80) -> bytes:
+    def encode_jpeg(frame: np.ndarray, quality: int = 65) -> bytes:
         """Compresses OpenCV frame into JPEG byte stream for MJPEG / WebSocket transfer."""
         encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), max(30, min(100, quality))]
         success, buffer = cv2.imencode(".jpg", frame, encode_params)
