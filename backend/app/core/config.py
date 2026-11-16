@@ -46,12 +46,12 @@ class Settings(BaseSettings):
 
     # Camera Configuration (CP PLUS CP-E25A / ONVIF / RTSP)
     CAMERA_NAME: str = "CP-PLUS-CP-E25A"
-    CAMERA_IP: str = "192.168.1.100"
+    CAMERA_IP: str = "192.168.1.27"
     CAMERA_RTSP_PORT: int = 5543
     CAMERA_RTSP_PATH: str = "/live/channel1"
     CAMERA_ONVIF_PORT: int = 8000
     CAMERA_USERNAME: str = "admin"
-    CAMERA_PASSWORD: str = ""
+    CAMERA_PASSWORD: str = "Admin1234"
     CAMERA_STREAM_SUBTYPE: int = 1  # 0: Main stream (high-res), 1: Sub-stream (low-res)
     CAMERA_RTSP_OVERRIDE_URL: Optional[str] = None
     CAMERA_RECONNECT_INTERVAL_SECONDS: int = 5
