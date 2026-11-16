@@ -5,7 +5,7 @@ resilient reconnection, and synthetic stream fallback.
 """
 
 import os
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|fflags;nobuffer|max_delay;500000"
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|fflags;nobuffer|stimeout;3000000|max_delay;500000"
 import time
 import socket
 import threading
@@ -449,7 +449,7 @@ class CameraStreamManager:
         logger.info("Camera ingestion thread started.")
 
         consecutive_failures = 0
-        max_failures = 10
+        max_failures = 3
 
         while not self._stop_requested.is_set():
             if self._cap is None or not self._cap.isOpened():
@@ -462,7 +462,7 @@ class CameraStreamManager:
                 consecutive_failures += 1
                 logger.warning(f"Frame read dropped ({consecutive_failures}/{max_failures})")
                 if consecutive_failures >= max_failures:
-                    logger.error("Too many dropped frames. Triggering stream reconnect...")
+                    logger.error("Too many dropped frames. Triggering rapid stream reconnect...")
                     if not self._handle_reconnection():
                         break
                     consecutive_failures = 0
@@ -489,7 +489,7 @@ class CameraStreamManager:
                 self._cap.release()
                 self._cap = None
 
-        backoff = min(settings.CAMERA_RECONNECT_INTERVAL_SECONDS, 5.0)
+        backoff = 1.0
         time.sleep(backoff)
         if self._stop_requested.is_set():
             return False

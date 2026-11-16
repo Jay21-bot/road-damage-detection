@@ -413,8 +413,9 @@ class DetectionService:
 
             detections = []
             if self.is_active:
-                detections, _ = dual_engine.process_frame(raw_frame)
-                self.record_detections(detections, frame=raw_frame)
+                detections, tel = dual_engine.process_frame(raw_frame)
+                if tel.get("inferred", True):
+                    self.record_detections(detections, frame=raw_frame)
 
             # Annotate frame with HUD and bounding boxes
             annotated = video_pipeline.annotate_frame(

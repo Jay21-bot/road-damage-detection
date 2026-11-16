@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # Camera Configuration (CP PLUS CP-E25A / ONVIF / RTSP)
     CAMERA_NAME: str = "CP-PLUS-CP-E25A"
-    CAMERA_IP: str = "192.168.1.27"
+    CAMERA_IP: str = "10.118.1.231"
     CAMERA_RTSP_PORT: int = 5543
     CAMERA_RTSP_PATH: str = "/live/channel1"
     CAMERA_ONVIF_PORT: int = 8000

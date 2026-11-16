@@ -699,6 +699,7 @@
 
     let eventCount = 0;
     function handleTelemetry(data) {
+      handleStreamLoaded();
       document.getElementById('stat-fps').innerText = (data.fps || 0).toFixed(1) + " FPS";
       document.getElementById('stat-latency').innerText = (data.latency_ms || 0).toFixed(1) + " ms";
 
